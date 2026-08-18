@@ -26,12 +26,17 @@ struct SunCurveView: View {
     /// accumulating rounding error across onChanged calls.
     @State private var baseline: (a: Double, b: Double)?
 
-    // The window frames the whole night plus `now`, so every handle stays reachable.
+    /// The night being shown and edited. Derived rather than assumed to be sunset->nextSunrise:
+    /// after sunset those roll to the *following* night, which would frame ~38 hours and put every
+    /// handle a day away from the cursor.
+    private var night: RampPlan.Night { settings.plan.night(at: now, sun: sun) }
+
+    // The window frames that whole night plus `now`, so every handle stays reachable.
     private var windowStart: Date {
-        min(sun.sunset.addingTimeInterval(-3 * 3600), now.addingTimeInterval(-3600))
+        min(night.sunset.addingTimeInterval(-3 * 3600), now.addingTimeInterval(-3600))
     }
     private var windowEnd: Date {
-        max(sun.nextSunrise.addingTimeInterval(3 * 3600), now.addingTimeInterval(3600))
+        max(night.sunrise.addingTimeInterval(3 * 3600), now.addingTimeInterval(3600))
     }
     private var cursor: Date { previewDate ?? now }
     private func date(atX px: CGFloat, _ w: CGFloat) -> Date {
@@ -123,7 +128,7 @@ struct SunCurveView: View {
         ctx.stroke(warm, with: .color(.red.opacity(0.8)), lineWidth: 1.7)
 
         // sunset / sunrise references
-        for (date, symbol) in [(sun.sunset, "sunset.fill"), (sun.nextSunrise, "sunrise.fill")] {
+        for (date, symbol) in [(night.sunset, "sunset.fill"), (night.sunrise, "sunrise.fill")] {
             let px = x(date, w)
             guard px >= 0, px <= w else { continue }
             var line = Path()
@@ -180,7 +185,7 @@ struct SunCurveView: View {
     // MARK: - Handles
 
     private func position(_ handle: Handle, _ size: CGSize) -> CGPoint {
-        let a = settings.plan.anchors(sun: sun)
+        let a = settings.plan.anchors(at: now, sun: sun)
         let h = size.height, w = size.width
         switch handle {
         case .warmStart: return CGPoint(x: x(a.warmStart, w), y: y(strength: 0, h))
@@ -212,7 +217,7 @@ struct SunCurveView: View {
     }
 
     private func timeLabel(_ handle: Handle) -> String {
-        let a = settings.plan.anchors(sun: sun)
+        let a = settings.plan.anchors(at: now, sun: sun)
         let date: Date
         switch handle {
         case .warmStart: date = a.warmStart

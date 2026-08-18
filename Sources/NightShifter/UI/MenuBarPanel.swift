@@ -132,7 +132,7 @@ struct MenuBarPanel: View {
 
     @ViewBuilder
     private func timings(sun: SunSchedule) -> some View {
-        let a = settings.plan.anchors(sun: sun)
+        let a = settings.plan.anchors(at: now, sun: sun)
         Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 7) {
             MinuteRow(title: "Start warming", minutes: $settings.eveningOffsetMinutes,
                       range: -240...180, suffix: relative(settings.eveningOffsetMinutes, "sunset"),

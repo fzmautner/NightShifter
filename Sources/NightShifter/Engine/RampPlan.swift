@@ -54,11 +54,46 @@ struct RampPlan {
     var maxStrength: Float = 0.5
     var easing: Easing = .smoothstep
 
-    /// Absolute times of the four points that define tonight's curve. These are what the user
-    /// drags directly on the chart, so the drawn handles and the applied schedule share one source.
-    func anchors(sun: SunSchedule) -> (warmStart: Date, warmFull: Date, coolStart: Date, coolEnd: Date) {
-        let warmStart = sun.sunset.addingTimeInterval(eveningOffsetMinutes * 60)
-        let coolEnd = sun.nextSunrise.addingTimeInterval(morningOffsetMinutes * 60)
+    /// Sunset and the sunrise that ends that same night.
+    ///
+    /// Never assume this is `(sun.sunset, sun.nextSunrise)`. Once sunset passes, macOS rolls
+    /// BlueLightSunSchedule forward — `sunset` becomes tomorrow's and `sunrise` becomes the one
+    /// ending the night in progress — so that pair silently describes the *following* night while
+    /// the ramp is still running the current one.
+    struct Night: Equatable {
+        var sunset: Date
+        var sunrise: Date
+    }
+
+    /// Every sunset in the schedule paired with the first sunrise after it.
+    func nights(sun: SunSchedule) -> [Night] {
+        let sunrises = [sun.previousSunrise, sun.sunrise, sun.nextSunrise].sorted()
+        return [sun.previousSunset, sun.sunset, sun.nextSunset].sorted().compactMap { sunset in
+            guard let sunrise = sunrises.first(where: { $0 > sunset }) else { return nil }
+            return Night(sunset: sunset, sunrise: sunrise)
+        }
+    }
+
+    /// The night `date` falls in — or, in daylight, the one coming up.
+    func night(at date: Date, sun: SunSchedule) -> Night {
+        let all = nights(sun: sun)
+        if let running = all.first(where: {
+            date >= $0.sunset.addingTimeInterval(eveningOffsetMinutes * 60)
+                && date <= $0.sunrise.addingTimeInterval(morningOffsetMinutes * 60)
+        }) { return running }
+        if let upcoming = all.first(where: {
+            $0.sunset.addingTimeInterval(eveningOffsetMinutes * 60) > date
+        }) { return upcoming }
+        return all.last ?? Night(sunset: sun.sunset, sunrise: sun.nextSunrise)
+    }
+
+    /// Absolute times of the four points that define the night around `date`. These are what the
+    /// user drags on the chart, so they must describe the same night the ramp is applying.
+    func anchors(at date: Date, sun: SunSchedule)
+        -> (warmStart: Date, warmFull: Date, coolStart: Date, coolEnd: Date) {
+        let n = night(at: date, sun: sun)
+        let warmStart = n.sunset.addingTimeInterval(eveningOffsetMinutes * 60)
+        let coolEnd = n.sunrise.addingTimeInterval(morningOffsetMinutes * 60)
         return (warmStart,
                 warmStart.addingTimeInterval(eveningRampMinutes * 60),
                 coolEnd.addingTimeInterval(-morningRampMinutes * 60),
