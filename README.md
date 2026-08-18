@@ -1,5 +1,9 @@
 # NightShifter
 
+<p align="center">
+  <img src="docs/panel.png" alt="NightShifter's menu bar panel: a sun arc above a warmth curve with four draggable points, minute fields for the offsets, and a maximum-warmth slider" width="420">
+</p>
+
 A macOS menu bar app that gives Night Shift the schedule macOS won't: warmth that begins at
 **sunset minus an offset you choose** and **builds gradually** instead of flipping at a boundary.
 
