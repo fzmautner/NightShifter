@@ -1,7 +1,8 @@
 # NightShifter
 
 <p align="center">
-  <img src="docs/panel.png" alt="NightShifter's menu bar panel: a sun arc above a warmth curve with four draggable points, minute fields for the offsets, and a maximum-warmth slider" width="420">
+  <img src="docs/panel-light.png" width="370" alt="NightShifter's panel in light mode, showing the daytime Clear state at 6,000K">
+  <img src="docs/panel-dark.png" width="370" alt="NightShifter's panel in dark mode, showing Full warmth at 4,120K partway through the night">
 </p>
 
 A macOS menu bar app that gives Night Shift the schedule macOS won't: warmth that begins at
